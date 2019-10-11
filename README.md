@@ -2,6 +2,14 @@
 
 Convenient interface to collect and aggregate code defined metrics during the execution of a program and dumping them to disk.
 
+## Installation
+
+Available for python 3.6 with
+
+```bash
+pip install ometrics
+```
+
 ## Sample usage :
 
 ```python
@@ -10,7 +18,7 @@ from pprint import pprint
 
 metrics = ometrics.Metrics('path/to/file.jsonl')
 
-for i in range(100):
+for i in range(3):
     
     '''
         You can use a dictionary to group all of your metrics 
@@ -37,7 +45,20 @@ for i in range(100):
 
     metrics.append(metric_nd)
     metrics.append(metric_nd)
-    pprint(metrics.dict)
+
+pprint(metrics.dict)
 
 metrics.dump()
+```
+
+Result 
+
+```
+{
+    'metric_1': [0, 0, 1, 2, 4, 6],
+    'metric_2': [0, 1, 8],
+    'metric_group': {
+        'sub_metric': [0, 0, 1, 1, 16, 16]
+    }
+}
 ```
