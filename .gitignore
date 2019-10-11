@@ -2,3 +2,6 @@
 .vscode
 *.egg-info
 **/fixtures/**
+dist
+build
+*.jsonl
