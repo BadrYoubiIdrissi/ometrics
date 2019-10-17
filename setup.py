@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="ometrics",
-    version="0.0.1",
+    version="1.0.1",
     author="Badr Youbi Idrissi",
     author_email="badryoubiidrissi@gmail.com",
     description="Metrics aggregation, dumping and loading",
