@@ -1,49 +1,104 @@
-import ometrics
 import unittest
-import json
-import os
-
-def dict_equality(d1,d2):
-    return json.dumps(d1) == json.dumps(d2)
+from ometrics import Metrics
 
 class TestMetrics(unittest.TestCase):
     def setUp(self):
-        self.m = ometrics.Metrics(os.path.abspath('test/fixtures/test.jsonl'))
-        self.d1 = {'accuracy': 0.8, 'loss': 8, 'int': {'correct': 4, 'incorrect': 10}}
-        self.d2 = {'kl_div': 0.8, 'loss': 10, 'int': {'correct': 50}}
-        self.nd = ometrics.NestedDict(self.d1)
-    
+        self.deep_nest = {
+            'accuracy': 0.8,
+            'loss': 10,
+            'int': {
+                'correct': 50,
+                'incorrect': {
+                    'world': 10
+                }
+            }
+        }
+        self.metr_deep = Metrics(self.deep_nest)
+        self.append_metr = Metrics()
+        self.dictio_1 = {
+            'accuracy': 0.8,
+            'loss': 8,
+            'int': {
+                'correct': 4,
+                'incorrect': 10
+            }
+        }
+        self.dictio_2 = {'kl_div': 0.8, 'loss': 10, 'int': {'correct': 50}}
+
+    def test_init(self):
+        self.assertEqual(self.deep_nest, self.metr_deep.dict)
+        self.assertEqual(self.deep_nest, Metrics(self.metr_deep).dict)
+
+    def test_contains(self):
+        self.assertTrue('accuracy' in self.metr_deep)
+        self.assertTrue(('int', 'correct') in self.metr_deep)
+        self.assertTrue('int/correct' in self.metr_deep)
+        self.assertFalse('accura' in self.metr_deep)
+        self.assertFalse('inte/correct' in self.metr_deep)
+
+    def test_get(self):
+        self.assertEqual(self.metr_deep['accuracy'], 0.8)
+        self.assertEqual(self.metr_deep['int', 'correct'], 50)
+        self.assertEqual(self.metr_deep['int/correct'], 50)
+        self.assertEqual(self.metr_deep['int/incorrect', 'world'], 10)
+        self.assertRaises(KeyError, lambda: self.metr_deep['hello'])
+        self.assertRaises(KeyError, lambda: self.metr_deep['hello', 'world'])
+
+    def test_set(self):
+        new_value = 5
+        self.metr_deep['accuracy'] = new_value
+        self.metr_deep['int', 'correct'] = new_value
+        self.metr_deep['int/new'] = new_value
+        self.assertEqual(self.metr_deep['accuracy'], new_value)
+        self.assertEqual(self.metr_deep['int', 'correct'], new_value)
+        self.assertEqual(self.metr_deep['int/new'], new_value)
+
+        self.metr_deep['loss'] = {'int/vadv': 10, 'tag/vadv': 10}
+
+        self.assertEqual(self.metr_deep['loss'].dict, {
+            'int': {
+                'vadv': 10
+            },
+            'tag': {
+                'vadv': 10
+            }
+        })
+
+    def test_iter(self):
+        count = 0
+        for keys, value in self.metr_deep:
+            self.assertTrue(isinstance(keys, tuple))
+            count += 1
+        self.assertEqual(len(self.metr_deep), 4)
+        self.assertEqual(count, 4)
+
+        for key, value in self.metr_deep.items():
+            self.assertTrue(key in self.metr_deep.dict)
+            self.assertTrue(not isinstance(value, dict))
+
     def test_append(self):
-        self.m.append(self.d1)
-        self.assertTrue(
-            dict_equality(
-                self.m.dict,
-                {'accuracy': [0.8], 'loss': [8], 'int': {'correct': [4], 'incorrect': [10]}}
-            )
-        )
-        self.m.append(self.d2)
+        self.append_metr.append(self.dictio_1)
         self.assertEqual(
-                self.m.dict,
-                {'accuracy': [0.8], 'kl_div': [0.8], 'loss': [8,10], 'int': {'correct': [4,50], 'incorrect': [10]}}
-            )
-    
-    def test_dump(self):
-        if os.path.exists(self.m.filepath) : os.remove(self.m.filepath)
-        self.m.reset()
-        self.m.append(self.d1)
-        self.m.dump()
-        with open(self.m.filepath,'r') as fh:
-            l = fh.readline()
-            self.assertEqual(json.dumps({'accuracy': [0.8], 'loss': [8], 'int': {'correct': [4], 'incorrect': [10]}}), l.rstrip())
-            self.assertEqual(self.m.dict, {})
-    
-    def test_load(self):
-        if os.path.exists(self.m.filepath) : os.remove(self.m.filepath)
-        self.m.reset()
-        self.m.append(self.d1)
-        self.m.dump()
-        self.m.load_last()
-        self.assertEqual(self.m.dict, {'accuracy': [0.8], 'loss': [8], 'int': {'correct': [4], 'incorrect': [10]}})
+            self.append_metr.dict, {
+                'accuracy': [0.8],
+                'loss': [8],
+                'int': {
+                    'correct': [4],
+                    'incorrect': [10]
+                }
+            })
+        self.append_metr.append(self.dictio_2)
+        self.assertEqual(
+            self.append_metr.dict, {
+                'accuracy': [0.8],
+                'kl_div': [0.8],
+                'loss': [8, 10],
+                'int': {
+                    'correct': [4, 50],
+                    'incorrect': [10]
+                }
+            })
+
 
 if __name__ == '__main__':
     unittest.main()
