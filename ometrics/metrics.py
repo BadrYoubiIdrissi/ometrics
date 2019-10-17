@@ -60,13 +60,16 @@ class Metrics:
         branch[keys[-1]] = value
 
     def __iter__(self):
-        yield from self._dict_generator(self.dict)
+        yield from self.dict.__iter__()
     
     def __len__(self):
         return self._dict_len(self.dict)
     
     def __repr__(self):
         return f'Metrics({self.dict.__repr__()})'
+
+    def flatten(self):
+        yield from self._dict_generator(self.dict)
 
     @staticmethod
     def _validate_keys(keys):
@@ -100,6 +103,9 @@ class Metrics:
             return count
         else:
             return count + 1
+
+    def get(self, key, default=None):
+        return self[key] if key in self else default
 
     def keys(self):
         return self.dict.keys()
@@ -138,18 +144,18 @@ class Metrics:
         return Metrics(copy.deepcopy(self.dict))
 
     def append(self, src):
-        for keys, value in Metrics(src):
+        for keys, value in Metrics(src).flatten():
             if keys in self:
                 self[keys].append(value)
             else:
                 self[keys] = [value]
 
-    def apply(self, apply_key, function):
-        for keys, value in self[apply_key]:
-            self[apply_key, keys] = function(value)
+    def apply(self, function):
+        for keys, value in self.flatten():
+            self[keys] = function(value)
 
     def apply_if(self, condition_func, function):
-        for keys, value in self:
+        for keys, value in self.flatten():
             if condition_func(keys, value):
                 self[keys] = function(value)
 

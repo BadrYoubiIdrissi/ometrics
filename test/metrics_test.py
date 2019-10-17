@@ -66,7 +66,7 @@ class TestMetrics(unittest.TestCase):
 
     def test_iter(self):
         count = 0
-        for keys, value in self.metr_deep:
+        for keys, value in self.metr_deep.flatten():
             self.assertTrue(isinstance(keys, tuple))
             count += 1
         self.assertEqual(len(self.metr_deep), 4)
