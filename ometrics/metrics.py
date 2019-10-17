@@ -88,7 +88,7 @@ class Metrics:
         keys = keys[:] if keys else ()
         if isinstance(indict, dict):
             for key, value in indict.items():
-                if isinstance(value, dict): yield from Metrics._dict_generator(value, (key,) + keys)
+                if isinstance(value, dict): yield from Metrics._dict_generator(value, keys + (key,))
                 else: yield keys + (key,), value
         else:
             yield indict
