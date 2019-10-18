@@ -1,6 +1,17 @@
 import warnings
+import collections
 import copy
 
+def _update(d, u):
+        for k, v in u.items():
+            dv = d.get(k, {})
+            if not isinstance(dv, collections.Mapping):
+                d[k] = v
+            elif isinstance(v, collections.Mapping):
+                d[k] = _update(dv, v)
+            else:
+                d[k] = v
+        return d
 class Metrics:
     """NestedDictionary utility class. Implements the bulk of functionality for ometrics
     
@@ -67,7 +78,7 @@ class Metrics:
     
     def __repr__(self):
         return f'Metrics({self.dict.__repr__()})'
-
+        
     def flatten(self):
         yield from self._dict_generator(self.dict)
 
@@ -118,7 +129,7 @@ class Metrics:
             else:
                 childs.append(d)
         return childs
-    
+        
     def items(self):
         childs = []
         for k, d in self.dict.items():
@@ -129,8 +140,12 @@ class Metrics:
         return childs
 
     def update(self, d):
-        for key in d:
-            self[key] = d[key]
+        if isinstance(d, dict):
+            self.dict = _update(self.dict, d)
+        elif isinstance(d, Metrics):
+            self.dict = _update(self.dict, d.dict)
+        else:
+            raise ValueError("Can't update with non dict like object")
 
     def get_existent_root(self, keys):
         keys = self._validate_keys(keys)
@@ -150,6 +165,10 @@ class Metrics:
             else:
                 self[keys] = [value]
 
+    def apply_keys(self,function):
+        for keys, value in self.flatten():
+            self[keys] = function(keys, value)
+
     def apply(self, function):
         for keys, value in self.flatten():
             self[keys] = function(value)
@@ -162,3 +181,6 @@ class Metrics:
     def reset(self):
         del self.dict
         self.dict = dict()
+
+if __name__ == "__main__":
+    Metrics({'a/b':{'c/d':{'e/f' : 1}}})
